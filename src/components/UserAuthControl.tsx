@@ -45,7 +45,7 @@ export const UserAuthControl: React.FC = () => {
           {avatarUrl ? (
             <img
               src={avatarUrl}
-              alt={fullName}
+              alt={`Listener profile avatar for ${fullName}`}
               className="w-5 h-5 rounded-full object-cover ring-1 ring-accent-500/40"
               referrerPolicy="no-referrer"
             />
@@ -65,7 +65,7 @@ export const UserAuthControl: React.FC = () => {
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
-                  alt={fullName}
+                  alt={`Profile picture for ${fullName}`}
                   className="w-9 h-9 rounded-full ring-2 ring-accent-500/40 object-cover"
                   referrerPolicy="no-referrer"
                 />

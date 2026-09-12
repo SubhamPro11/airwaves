@@ -26,3 +26,25 @@ export function findStationBySlugOrId(videos: Video[], slugOrId: string): Video 
   // Match by title slug
   return videos.find((v) => getStationSlug(v.title) === cleanTarget);
 }
+
+/**
+ * Converts a category name into a clean URL-safe slug
+ */
+export function getCategorySlug(category: string): string {
+  return category
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Finds a category from a list by its URL slug
+ */
+export function findCategoryBySlug<T extends string>(categories: readonly T[], slug: string): T | undefined {
+  if (!slug) return undefined;
+  const cleanTarget = decodeURIComponent(slug).toLowerCase().trim();
+  return categories.find((c) => getCategorySlug(c) === cleanTarget);
+}
+

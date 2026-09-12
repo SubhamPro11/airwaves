@@ -6,6 +6,7 @@ import { VideoCard } from './VideoCard';
 import { AmbientBackground } from './AmbientBackground';
 import { getStationSlug } from '../utils/slug';
 import { useToast } from './Toast';
+import { usePageMeta } from '../hooks/usePageMeta';
 
 interface StationPermalinkPageProps {
   video: Video;
@@ -57,30 +58,20 @@ export const StationPermalinkPage: React.FC<StationPermalinkPageProps> = ({
 
   const thumbnailUrl = getEffectiveThumbnailUrl(video);
 
-  // Dynamic SEO meta tags and structured data per station
+  const permalinkSlug = getStationSlug(video.title);
+  const currentPermalink = `https://airwaves.dpdns.org/station/${permalinkSlug}`;
+
+  // Dynamic SEO meta tags and Open Graph per station
+  usePageMeta({
+    title: `${video.title} · Airwaves Radio`,
+    description: `Listen to ${video.title} (${domain}), curated in ${video.category} on Airwaves. Independent web radio, ambient soundscapes, and regional audio.`,
+    canonicalPath: `/station/${permalinkSlug}`,
+    ogImage: thumbnailUrl,
+    ogType: 'music.playlist',
+  });
+
+  // Dynamic JSON-LD for Station
   useEffect(() => {
-    const originalTitle = document.title;
-    document.title = `${video.title} — Airwaves Curated Audio Showcase`;
-
-    // Update description meta tag
-    const metaDesc = document.querySelector('meta[name="description"]');
-    const prevDesc = metaDesc?.getAttribute('content') || '';
-    if (metaDesc) {
-      metaDesc.setAttribute(
-        'content',
-        `Listen to ${video.title} (${domain}), curated in ${video.category} on Airwaves. Independent web radio, ambient soundscapes, and regional audio.`
-      );
-    }
-
-    // Update canonical URL dynamically for station permalink
-    const canonical = document.querySelector('link[rel="canonical"]');
-    const prevCanonical = canonical?.getAttribute('href') || 'https://airwaves.dpdns.org/';
-    const currentPermalink = `https://airwaves.dpdns.org/station/${getStationSlug(video.title)}`;
-    if (canonical) {
-      canonical.setAttribute('href', currentPermalink);
-    }
-
-    // Dynamic JSON-LD for Station
     const scriptId = 'station-jsonld';
     let scriptEl = document.getElementById(scriptId) as HTMLScriptElement | null;
     if (!scriptEl) {
@@ -105,19 +96,12 @@ export const StationPermalinkPage: React.FC<StationPermalinkPageProps> = ({
     window.scrollTo({ top: 0, behavior: isReducedMotion ? 'auto' : 'smooth' });
 
     return () => {
-      document.title = originalTitle;
-      if (metaDesc && prevDesc) {
-        metaDesc.setAttribute('content', prevDesc);
-      }
-      if (canonical && prevCanonical) {
-        canonical.setAttribute('href', prevCanonical);
-      }
       const existingScript = document.getElementById(scriptId);
       if (existingScript) {
         existingScript.remove();
       }
     };
-  }, [video, domain, thumbnailUrl]);
+  }, [video.id, video.title, video.externalLink, video.category, thumbnailUrl, currentPermalink]);
 
   const handleCopyLink = async () => {
     const url = `https://airwaves.dpdns.org/station/${getStationSlug(video.title)}`;

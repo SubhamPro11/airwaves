@@ -13,12 +13,14 @@ interface SuggestStationModalProps {
     notes?: string,
     honeypot?: string
   ) => Promise<{ success: boolean; message: string }>;
+  onNavigateThankYou?: (stationName: string) => void;
 }
 
 export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
   isOpen,
   onClose,
   onSubmitStation,
+  onNavigateThankYou,
 }) => {
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
@@ -29,6 +31,7 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
   
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; url?: string }>({});
 
   const realCategories = CATEGORIES.filter((c) => c !== 'All');
 
@@ -45,6 +48,7 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
     } else {
       document.body.style.overflow = '';
       setFeedback(null);
+      setFieldErrors({});
     }
 
     return () => {
@@ -59,15 +63,31 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
     e.preventDefault();
     if (submitting) return;
 
-    if (!name.trim() || !url.trim()) {
-      setFeedback({ type: 'error', message: 'Station name and URL are required.' });
+    // Field-level validations
+    const errors: { name?: string; url?: string } = {};
+    const trimmedName = name.trim();
+    const trimmedUrl = url.trim();
+
+    if (!trimmedName) {
+      errors.name = 'Please enter a station or audio project name.';
+    }
+
+    if (!trimmedUrl) {
+      errors.url = 'Please enter the direct stream or website URL.';
+    } else if (!/^https?:\/\//i.test(trimmedUrl)) {
+      errors.url = 'URL must begin with https:// or http://';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
+    setFieldErrors({});
     setSubmitting(true);
     setFeedback(null);
 
-    const result = await onSubmitStation(name, url, category, notes, honeypot);
+    const result = await onSubmitStation(trimmedName, trimmedUrl, category, notes, honeypot);
     setSubmitting(false);
 
     if (result.success) {
@@ -77,6 +97,13 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
       setUrl('');
       setNotes('');
       setHoneypot('');
+
+      if (onNavigateThankYou) {
+        setTimeout(() => {
+          onClose();
+          onNavigateThankYou(trimmedName);
+        }, 600);
+      }
     } else {
       setFeedback({ type: 'error', message: result.message });
     }
@@ -96,7 +123,7 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg bg-surface-900 border border-surface-700 rounded-2xl p-6 sm:p-8 shadow-2xl z-10 text-slate-200">
+      <div className="relative w-full max-w-lg bg-surface-900 border border-surface-700 rounded-2xl p-6 sm:p-8 shadow-2xl z-10 text-slate-200 max-h-[90vh] overflow-y-auto">
         {/* Close Button */}
         <button
           type="button"
@@ -125,6 +152,7 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
         {/* Success / Error Feedback Banner */}
         {feedback && (
           <div
+            role="alert"
             className={`p-3.5 rounded-xl text-xs mb-5 flex items-start gap-2.5 border ${
               feedback.type === 'success'
                 ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
@@ -141,7 +169,7 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {/* Invisible Bot Honeypot */}
           <div className="hidden" aria-hidden="true">
             <label htmlFor="website_verification">Leave this field blank</label>
@@ -158,43 +186,74 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
 
           {/* Station Name */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="suggest-station-name" className="block text-xs font-semibold text-slate-300 mb-1.5">
               Station or Project Name <span className="text-accent-500">*</span>
             </label>
             <input
+              id="suggest-station-name"
               type="text"
-              required
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }));
+              }}
+              aria-invalid={Boolean(fieldErrors.name)}
+              aria-describedby={fieldErrors.name ? 'station-name-error' : undefined}
               placeholder="e.g. Saloon WTF Radio"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-850 border border-surface-700 focus:border-accent-500 focus:outline-none text-white placeholder:text-slate-500 text-xs sm:text-sm"
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-surface-850 border text-white placeholder:text-slate-500 text-xs sm:text-sm transition-colors ${
+                fieldErrors.name
+                  ? 'border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-500/30'
+                  : 'border-surface-700 focus:border-accent-500 focus:outline-none'
+              }`}
             />
+            {fieldErrors.name && (
+              <p id="station-name-error" role="alert" className="mt-1 text-[11px] text-rose-400 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                <span>{fieldErrors.name}</span>
+              </p>
+            )}
           </div>
 
           {/* External URL */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="suggest-station-url" className="block text-xs font-semibold text-slate-300 mb-1.5">
               Live Web Stream / Site URL <span className="text-accent-500">*</span>
             </label>
             <input
+              id="suggest-station-url"
               type="url"
-              required
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                if (fieldErrors.url) setFieldErrors((prev) => ({ ...prev, url: undefined }));
+              }}
+              aria-invalid={Boolean(fieldErrors.url)}
+              aria-describedby={fieldErrors.url ? 'station-url-error' : undefined}
               placeholder="https://saloon.wtf"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-850 border border-surface-700 focus:border-accent-500 focus:outline-none text-white placeholder:text-slate-500 text-xs sm:text-sm font-mono"
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-surface-850 border text-white placeholder:text-slate-500 text-xs sm:text-sm font-mono transition-colors ${
+                fieldErrors.url
+                  ? 'border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-500/30'
+                  : 'border-surface-700 focus:border-accent-500 focus:outline-none'
+              }`}
             />
+            {fieldErrors.url && (
+              <p id="station-url-error" role="alert" className="mt-1 text-[11px] text-rose-400 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                <span>{fieldErrors.url}</span>
+              </p>
+            )}
           </div>
 
           {/* Suggested Category */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="suggest-station-category" className="block text-xs font-semibold text-slate-300 mb-1.5">
               Primary Channel / Genre
             </label>
             <select
+              id="suggest-station-category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-850 border border-surface-700 focus:border-accent-500 focus:outline-none text-white text-xs sm:text-sm"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-850 border border-surface-700 focus:border-accent-500 focus:outline-none text-white text-xs sm:text-sm cursor-pointer"
             >
               {realCategories.map((cat) => (
                 <option key={cat} value={cat} className="bg-surface-900 text-white">
@@ -206,10 +265,11 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
 
           {/* Submitter Notes */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label htmlFor="suggest-station-notes" className="block text-xs font-semibold text-slate-300 mb-1.5">
               Why should this be added? (Optional note)
             </label>
             <textarea
+              id="suggest-station-notes"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -231,7 +291,7 @@ export const SuggestStationModal: React.FC<SuggestStationModalProps> = ({
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-400 disabled:opacity-50 text-surface-950 font-semibold text-xs transition-all shadow-md cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-accent-500 hover:bg-accent-400 disabled:opacity-50 text-surface-950 font-bold text-xs transition-all shadow-md cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{submitting ? 'Submitting...' : 'Submit Proposal'}</span>

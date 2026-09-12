@@ -19,37 +19,41 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
 }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const handleUsernameChange = (val: string) => {
     setUsername(val);
-    if (localError) setLocalError(null);
+    if (usernameError) setUsernameError(null);
   };
 
   const handlePasswordChange = (val: string) => {
     setPassword(val);
-    if (localError) setLocalError(null);
+    if (passwordError) setPasswordError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLocalError(null);
+    setUsernameError(null);
+    setPasswordError(null);
 
     const trimmed = username.trim().toLowerCase();
+    let hasError = false;
+
     if (!trimmed) {
-      setLocalError('Please enter admin username or email');
-      return;
+      setUsernameError('Please enter admin username or email address');
+      hasError = true;
     }
 
     if (!password) {
-      setLocalError('Please enter admin password');
-      return;
+      setPasswordError('Please enter admin password');
+      hasError = true;
     }
+
+    if (hasError) return;
 
     await onLogin(trimmed, password);
   };
-
-  const displayedError = localError || error;
 
   return (
     <div className="min-h-screen bg-surface-900 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
@@ -89,43 +93,69 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
           </div>
         )}
 
-        {/* Error Alert */}
-        {displayedError && (
-          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-red-300 text-xs animate-in fade-in duration-200">
+        {/* Top-Level Server Error Alert */}
+        {error && (
+          <div role="alert" className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2.5 text-red-300 text-xs animate-in fade-in duration-200">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
-            <p className="leading-relaxed font-medium">{displayedError}</p>
+            <p className="leading-relaxed font-medium">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-300 font-medium uppercase tracking-wider mb-1.5">
+            <label htmlFor="admin-username" className="block text-xs text-slate-300 font-medium uppercase tracking-wider mb-1.5">
               Username or Email
             </label>
             <input
+              id="admin-username"
               type="text"
               value={username}
               onChange={(e) => handleUsernameChange(e.target.value)}
               autoComplete="username"
               disabled={loading}
+              aria-invalid={Boolean(usernameError)}
+              aria-describedby={usernameError ? 'admin-username-error' : undefined}
               placeholder="Username or email"
-              className="w-full px-3.5 py-2.5 bg-surface-900 text-slate-100 placeholder:text-slate-500 rounded-xl border border-surface-700 focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 focus:outline-none text-xs transition-all disabled:opacity-50"
+              className={`w-full px-3.5 py-2.5 bg-surface-900 text-slate-100 placeholder:text-slate-500 rounded-xl border text-xs transition-all disabled:opacity-50 ${
+                usernameError
+                  ? 'border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-500/30'
+                  : 'border-surface-700 focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 focus:outline-none'
+              }`}
             />
+            {usernameError && (
+              <p id="admin-username-error" role="alert" className="mt-1 text-[11px] text-red-400 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                <span>{usernameError}</span>
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="block text-xs text-slate-300 font-medium uppercase tracking-wider mb-1.5">
+            <label htmlFor="admin-password" className="block text-xs text-slate-300 font-medium uppercase tracking-wider mb-1.5">
               Password
             </label>
             <input
+              id="admin-password"
               type="password"
               value={password}
               onChange={(e) => handlePasswordChange(e.target.value)}
               autoComplete="current-password"
               disabled={loading}
+              aria-invalid={Boolean(passwordError)}
+              aria-describedby={passwordError ? 'admin-password-error' : undefined}
               placeholder="••••••••••••"
-              className="w-full px-3.5 py-2.5 bg-surface-900 text-slate-100 placeholder:text-slate-500 rounded-xl border border-surface-700 focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 focus:outline-none text-xs transition-all disabled:opacity-50"
+              className={`w-full px-3.5 py-2.5 bg-surface-900 text-slate-100 placeholder:text-slate-500 rounded-xl border text-xs transition-all disabled:opacity-50 ${
+                passwordError
+                  ? 'border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-500/30'
+                  : 'border-surface-700 focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 focus:outline-none'
+              }`}
             />
+            {passwordError && (
+              <p id="admin-password-error" role="alert" className="mt-1 text-[11px] text-red-400 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 shrink-0" />
+                <span>{passwordError}</span>
+              </p>
+            )}
           </div>
 
           <button
@@ -156,4 +186,3 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
     </div>
   );
 };
-

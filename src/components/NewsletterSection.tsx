@@ -1,25 +1,44 @@
 import React, { useState } from 'react';
-import { Mail, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Mail, CheckCircle2, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useNewsletter } from '../hooks/useNewsletter';
 import { useToast } from './Toast';
 
-export const NewsletterSection: React.FC = () => {
+interface NewsletterSectionProps {
+  onNavigateThankYou?: () => void;
+}
+
+export const NewsletterSection: React.FC<NewsletterSectionProps> = ({ onNavigateThankYou }) => {
   const { isSubscribed, loading, error, subscribe } = useNewsletter();
   const [email, setEmail] = useState('');
   const [honeypot, setHoneypot] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedback(null);
-    const res = await subscribe(email, honeypot);
+    setFieldError(null);
+
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setFieldError('Please enter your email address.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setFieldError('Please enter a valid email address (e.g. name@domain.com).');
+      return;
+    }
+
+    const res = await subscribe(trimmed, honeypot);
     if (res.success) {
       setFeedback(res.message);
       showToast('Subscribed to Monthly Dispatch!');
       setEmail('');
     } else {
       setFeedback(res.message);
+      setFieldError(res.message || 'Subscription failed');
       showToast(res.message || 'Subscription failed', 'error');
     }
   };
@@ -59,17 +78,26 @@ export const NewsletterSection: React.FC = () => {
             {isSubscribed ? (
               <div className="flex items-start gap-3 p-4 rounded-xl bg-surface-950/80 border border-emerald-500/30 text-emerald-400">
                 <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <h3 className="font-sans font-semibold text-sm text-white">
                     You're on the list
                   </h3>
                   <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                     {feedback || 'Thank you for joining the Airwaves Monthly Dispatch. We will send the next edition on the 1st.'}
                   </p>
+                  {onNavigateThankYou && (
+                    <button
+                      type="button"
+                      onClick={onNavigateThankYou}
+                      className="mt-2 text-xs text-accent-400 hover:text-accent-300 underline underline-offset-4 cursor-pointer"
+                    >
+                      View confirmation page &rarr;
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-2.5">
+              <form onSubmit={handleSubmit} noValidate className="space-y-2.5">
                 {/* Anti-Bot Honeypot Field */}
                 <input
                   type="text"
@@ -89,11 +117,19 @@ export const NewsletterSection: React.FC = () => {
                     </div>
                     <input
                       type="email"
-                      required
                       placeholder="your.email@domain.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-950 border border-surface-700 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-all font-sans"
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (fieldError) setFieldError(null);
+                      }}
+                      aria-invalid={Boolean(fieldError)}
+                      aria-describedby={fieldError ? 'newsletter-email-error' : undefined}
+                      className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface-950 border text-sm text-slate-100 placeholder-slate-500 transition-all font-sans ${
+                        fieldError
+                          ? 'border-rose-500 focus:ring-1 focus:ring-rose-500/30'
+                          : 'border-surface-700 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-accent-500'
+                      }`}
                     />
                   </div>
                   
@@ -113,8 +149,15 @@ export const NewsletterSection: React.FC = () => {
                   </button>
                 </div>
 
-                {error && (
-                  <p className="text-xs text-rose-400 font-mono mt-1">
+                {fieldError && (
+                  <p id="newsletter-email-error" role="alert" className="text-xs text-rose-400 flex items-center gap-1 mt-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{fieldError}</span>
+                  </p>
+                )}
+
+                {error && !fieldError && (
+                  <p role="alert" className="text-xs text-rose-400 font-mono mt-1">
                     {error}
                   </p>
                 )}

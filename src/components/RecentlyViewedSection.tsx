@@ -66,7 +66,7 @@ export const RecentlyViewedSection: React.FC<RecentlyViewedSectionProps> = ({
               <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-surface-800 flex-shrink-0">
                 <img
                   src={thumb}
-                  alt={video.title}
+                  alt={`Broadcast thumbnail for ${video.title} (${video.category})`}
                   loading="lazy"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />

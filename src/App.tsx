@@ -28,6 +28,12 @@ import { RecommendedSection } from './components/RecommendedSection';
 import { BackToTopButton } from './components/BackToTopButton';
 import { AmbientBackground } from './components/AmbientBackground';
 import { FaqSection } from './components/FaqSection';
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
+import { TermsPage } from './components/TermsPage';
+import { ThankYouPage } from './components/ThankYouPage';
+import { CookieBanner } from './components/CookieBanner';
+import { StickyMobileCTA } from './components/StickyMobileCTA';
+import { VideoGridSkeleton } from './components/VideoCardSkeleton';
 import { useSiteSettings } from './hooks/useSiteSettings';
 import { useKeyboardNav } from './hooks/useKeyboardNav';
 import { useReactions } from './hooks/useReactions';
@@ -35,26 +41,50 @@ import { useRecentlyViewed } from './hooks/useRecentlyViewed';
 import { useLinkHealth } from './hooks/useLinkHealth';
 import { useUserAuth } from './hooks/useUserAuth';
 import { useRecommendations } from './hooks/useRecommendations';
-import { findStationBySlugOrId, getStationSlug } from './utils/slug';
+import { usePageMeta } from './hooks/usePageMeta';
+import { loadAnalytics, trackPageView } from './lib/analytics';
+import { findStationBySlugOrId, getStationSlug, getCategorySlug, findCategoryBySlug } from './utils/slug';
 
-type AppRoute = 'public' | 'admin' | 'station' | 'not_found';
+type AppRoute = 'public' | 'admin' | 'station' | 'category' | 'privacy' | 'terms' | 'thank_you' | 'not_found';
 
 interface RouteState {
   route: AppRoute;
   stationSlug?: string;
+  categorySlug?: string;
+  submissionType?: string;
+  stationName?: string;
 }
 
 function parseLocation(): RouteState {
   const path = window.location.pathname;
+  const searchParams = new URLSearchParams(window.location.search);
+
   if (path.startsWith('/admin') || window.location.hash === '#admin') {
     return { route: 'admin' };
   }
-  if (path === '/' || path === '/index.html' || path === '') {
-    return { route: 'public' };
+  if (path === '/privacy') {
+    return { route: 'privacy' };
+  }
+  if (path === '/terms') {
+    return { route: 'terms' };
+  }
+  if (path === '/thank-you') {
+    return {
+      route: 'thank_you',
+      submissionType: searchParams.get('type') || undefined,
+      stationName: searchParams.get('name') || undefined,
+    };
+  }
+  const catMatch = path.match(/^\/category\/([^/?#]+)/i);
+  if (catMatch) {
+    return { route: 'category', categorySlug: catMatch[1] };
   }
   const entryMatch = path.match(/^\/(?:entry|station)\/([^/?#]+)/i);
   if (entryMatch) {
     return { route: 'station', stationSlug: entryMatch[1] };
+  }
+  if (path === '/' || path === '/index.html' || path === '') {
+    return { route: 'public' };
   }
   return { route: 'not_found' };
 }
@@ -70,10 +100,11 @@ export function App() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSuggestOpen, setIsSuggestOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [cookieBannerKey, setCookieBannerKey] = useState(0);
 
   const { favoriteIds, favoritesCount, toggleFavorite, isFavorite } = useFavorites();
   const { isAuthenticated, loading: authLoading, error: authError, login, logout, isSupabaseConfigured } = useAdminAuth();
-  const { videos, updateVideo, deleteVideo, addVideo, reorderVideos } = useVideosData();
+  const { videos, loading: videosLoading, updateVideo, deleteVideo, addVideo, reorderVideos } = useVideosData();
   const { submissions, submitStation, updateSubmissionStatus, deleteSubmission } = useSubmissions();
   const { settings: siteSettings, isSupportActive } = useSiteSettings();
   const { addReaction, hasReacted, getReactionCount } = useReactions();
@@ -87,9 +118,57 @@ export function App() {
     Boolean(signedInUser)
   );
 
+  // Initialize analytics on mount
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
+  // Track pageviews on route change
+  useEffect(() => {
+    trackPageView(window.location.pathname);
+  }, [routeState]);
+
+  // Handle URL query params on initial load (?q=... or ?category=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) setSearchQuery(q);
+    const catParam = params.get('category');
+    if (catParam) {
+      const match = CATEGORIES.find((c) => c.toLowerCase() === catParam.toLowerCase());
+      if (match) setSelectedCategory(match);
+    }
+  }, []);
+
+  // Synchronize category route with selectedCategory
+  useEffect(() => {
+    if (routeState.route === 'category' && routeState.categorySlug) {
+      const matched = findCategoryBySlug(CATEGORIES, routeState.categorySlug);
+      if (matched) {
+        setSelectedCategory(matched);
+      }
+    } else if (routeState.route === 'public' && !window.location.search.includes('category=')) {
+      // stay on current category or 'All'
+    }
+  }, [routeState]);
+
+  // Dynamic SEO meta tags for public / category views (<60 chars title, <160 chars desc)
+  const isCategorySelected = selectedCategory !== 'All';
+  const currentCategorySlug = isCategorySelected ? getCategorySlug(selectedCategory) : '';
+
+  usePageMeta({
+    title: isCategorySelected
+      ? `${selectedCategory} · Airwaves Web Radio`
+      : 'Airwaves — Curated Web Radio & Soundscapes',
+    description: isCategorySelected
+      ? `Discover curated ${selectedCategory} independent audio projects, web radios, and soundscapes on Airwaves.`
+      : 'A curated single-playlist showcase of 70 independent web radio, audio playlists, and soundscape projects.',
+    canonicalPath: isCategorySelected ? `/category/${currentCategorySlug}` : '/',
+  });
+
   // Enable arrow-key card navigation, space activation, and keyboard shortcuts
   useKeyboardNav({
-    isEnabled: routeState.route === 'public' && !isAboutOpen && !isSuggestOpen && !isShortcutsOpen,
+    isEnabled: (routeState.route === 'public' || routeState.route === 'category') && !isAboutOpen && !isSuggestOpen && !isShortcutsOpen,
     onToggleShortcuts: () => setIsShortcutsOpen((prev) => !prev),
   });
 
@@ -112,7 +191,6 @@ export function App() {
 
   // Feature recently added entries in Spotlight (newest take rank #1 and #2), with curated fallback
   const featuredVideos = useMemo(() => {
-    // 1. Identify valid recent additions with dateAdded within 7-day window
     const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
     const now = Date.now();
 
@@ -124,17 +202,14 @@ export function App() {
       })
       .sort((a, b) => new Date(b.dateAdded!).getTime() - new Date(a.dateAdded!).getTime());
 
-    // Up to 2 newest entries take #1 and #2
     const topRecent = recentEntries.slice(0, 2);
     const topRecentIds = new Set(topRecent.map((v) => v.id));
 
-    // Curated default fallback pool
     const defaultSpotlightIds = ['vid-01', 'vid-04', 'vid-23', 'vid-33', 'vid-37'];
     const curatedPool = defaultSpotlightIds
       .map((id) => videos.find((v) => v.id === id))
       .filter((v): v is Video => Boolean(v) && !topRecentIds.has(v!.id));
 
-    // Also include other catalog videos as extra fallback if needed
     const remainingFallback = videos.filter(
       (v) => !topRecentIds.has(v.id) && !curatedPool.some((c) => c.id === v.id)
     );
@@ -160,6 +235,55 @@ export function App() {
   const navigateToPublic = () => {
     window.history.pushState({}, '', '/');
     setRouteState({ route: 'public' });
+    setSelectedCategory('All');
+    setSearchQuery('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToCategory = (cat: Category) => {
+    if (cat === 'All') {
+      navigateToPublic();
+      return;
+    }
+    const slug = getCategorySlug(cat);
+    window.history.pushState({}, '', `/category/${slug}`);
+    setSelectedCategory(cat);
+    setRouteState({ route: 'category', categorySlug: slug });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToPrivacy = () => {
+    window.history.pushState({}, '', '/privacy');
+    setRouteState({ route: 'privacy' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToTerms = () => {
+    window.history.pushState({}, '', '/terms');
+    setRouteState({ route: 'terms' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateToThankYou = (type = 'submission', name?: string) => {
+    const params = new URLSearchParams();
+    if (type) params.set('type', type);
+    if (name) params.set('name', name);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    window.history.pushState({}, '', `/thank-you${qs}`);
+    setRouteState({
+      route: 'thank_you',
+      submissionType: type,
+      stationName: name,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSearchFrom404 = (q: string) => {
+    window.history.pushState({}, '', `/?q=${encodeURIComponent(q)}`);
+    setSearchQuery(q);
+    setSelectedCategory('All');
+    setRouteState({ route: 'public' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const lastRandomIdRef = useRef<string | null>(null);
@@ -169,8 +293,9 @@ export function App() {
     if (station) {
       addRecentlyViewed(station.id);
     }
-    window.history.pushState({}, '', `/entry/${slug}`);
+    window.history.pushState({}, '', `/station/${slug}`);
     setRouteState({ route: 'station', stationSlug: slug });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Surprise Me - picks a random station without repeating the same one twice in a row
@@ -186,7 +311,7 @@ export function App() {
     lastRandomIdRef.current = chosen.id;
     addRecentlyViewed(chosen.id);
     const slug = getStationSlug(chosen.title);
-    window.history.pushState({}, '', `/entry/${slug}`);
+    window.history.pushState({}, '', `/station/${slug}`);
     setRouteState({ route: 'station', stationSlug: slug });
     const isReducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: isReducedMotion ? 'auto' : 'smooth' });
@@ -211,9 +336,7 @@ export function App() {
     setCurrentSort('shuffle');
   }, [videos]);
 
-  // Determine active view mode:
-  // If user has an active search, specific category filter, favorites-only, or custom sort => Flat Grid View.
-  // Otherwise => Rich Row-Based Category Browsing View.
+  // Determine active view mode
   const isFilteredGridView = useMemo(() => {
     return (
       searchQuery.trim().length > 0 ||
@@ -226,7 +349,6 @@ export function App() {
   // Filtered and Sorted Video List (for Flat Grid mode)
   const processedVideos = useMemo(() => {
     const filtered = videos.filter((video) => {
-      // 1. Search Query filter (matches title, clean domain, or category)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const cleanDomain = video.externalLink.replace(/^https?:\/\//, '').toLowerCase();
@@ -238,12 +360,10 @@ export function App() {
         }
       }
 
-      // 2. Category selection filter
       if (selectedCategory !== 'All' && video.category !== selectedCategory) {
         return false;
       }
 
-      // 3. Favorites only toggle
       if (favoritesOnly && !favoriteIds.includes(video.id)) {
         return false;
       }
@@ -251,7 +371,6 @@ export function App() {
       return true;
     });
 
-    // Apply sorting
     return [...filtered].sort((a, b) => {
       if (currentSort === 'az') {
         return a.title.localeCompare(b.title);
@@ -262,7 +381,6 @@ export function App() {
       if (currentSort === 'shuffle') {
         return (shuffleMap[a.id] ?? 0) - (shuffleMap[b.id] ?? 0);
       }
-      // Default: Original curation order index
       return a.orderIndex - b.orderIndex;
     });
   }, [videos, searchQuery, selectedCategory, favoritesOnly, favoriteIds, currentSort, shuffleMap]);
@@ -283,6 +401,18 @@ export function App() {
     setSelectedCategory('All');
     setFavoritesOnly(false);
     setCurrentSort('default');
+    if (routeState.route === 'category') {
+      navigateToPublic();
+    }
+  };
+
+  const handleOpenCookieSettings = () => {
+    try {
+      localStorage.removeItem('airwaves_cookie_consent_v1');
+    } catch {
+      // ignore
+    }
+    setCookieBannerKey((prev) => prev + 1);
   };
 
   // --- Station Dedicated Permalink Route View ---
@@ -290,31 +420,81 @@ export function App() {
     const station = findStationBySlugOrId(videos, routeState.stationSlug || '');
     if (station) {
       return (
-        <StationPermalinkPage
-          video={station}
-          allVideos={videos}
-          isFavorite={isFavorite(station.id)}
-          onToggleFavorite={toggleFavorite}
-          onNavigateHome={navigateToPublic}
-          onNavigateStation={navigateToStation}
-          onSurpriseMe={handleSurpriseMe}
-          reactionCount={getReactionCount(station.id)}
-          hasReacted={hasReacted(station.id)}
-          onAddReaction={addReaction}
-          getReactionCount={getReactionCount}
-          hasReactedForId={hasReacted}
-          onRecordView={addRecentlyViewed}
-          onReportBroken={reportBrokenLink}
-          isBrokenReported={hasReportedBroken(station.id)}
-        />
+        <>
+          <StationPermalinkPage
+            video={station}
+            allVideos={videos}
+            isFavorite={isFavorite(station.id)}
+            onToggleFavorite={toggleFavorite}
+            onNavigateHome={navigateToPublic}
+            onNavigateStation={navigateToStation}
+            onSurpriseMe={handleSurpriseMe}
+            reactionCount={getReactionCount(station.id)}
+            hasReacted={hasReacted(station.id)}
+            onAddReaction={addReaction}
+            getReactionCount={getReactionCount}
+            hasReactedForId={hasReacted}
+            onRecordView={addRecentlyViewed}
+            onReportBroken={reportBrokenLink}
+            isBrokenReported={hasReportedBroken(station.id)}
+          />
+          <CookieBanner key={cookieBannerKey} onOpenPrivacy={navigateToPrivacy} />
+        </>
       );
     }
-    return <NotFoundPage onBackToHome={navigateToPublic} />;
+    return (
+      <NotFoundPage
+        onBackToHome={navigateToPublic}
+        onSearchFrom404={handleSearchFrom404}
+        onSelectCategory={(cat) => navigateToCategory(cat as Category)}
+      />
+    );
+  }
+
+  // --- Privacy Policy Route View ---
+  if (routeState.route === 'privacy') {
+    return (
+      <>
+        <PrivacyPolicyPage onBackToHome={navigateToPublic} />
+        <CookieBanner key={cookieBannerKey} onOpenPrivacy={navigateToPrivacy} />
+      </>
+    );
+  }
+
+  // --- Terms of Service Route View ---
+  if (routeState.route === 'terms') {
+    return (
+      <>
+        <TermsPage onBackToHome={navigateToPublic} />
+        <CookieBanner key={cookieBannerKey} onOpenPrivacy={navigateToPrivacy} />
+      </>
+    );
+  }
+
+  // --- Thank-You Confirmation Route View ---
+  if (routeState.route === 'thank_you') {
+    return (
+      <>
+        <ThankYouPage
+          onBackToHome={navigateToPublic}
+          onSurpriseMe={handleSurpriseMe}
+          submissionType={routeState.submissionType}
+          stationName={routeState.stationName}
+        />
+        <CookieBanner key={cookieBannerKey} onOpenPrivacy={navigateToPrivacy} />
+      </>
+    );
   }
 
   // --- 404 Route View ---
   if (routeState.route === 'not_found') {
-    return <NotFoundPage onBackToHome={navigateToPublic} />;
+    return (
+      <NotFoundPage
+        onBackToHome={navigateToPublic}
+        onSearchFrom404={handleSearchFrom404}
+        onSelectCategory={(cat) => navigateToCategory(cat as Category)}
+      />
+    );
   }
 
   // --- Admin Route View ---
@@ -349,10 +529,10 @@ export function App() {
     );
   }
 
-  // --- Public Single Playlist View ---
+  // --- Public Single Playlist & Category Views ---
   return (
     <div className="min-h-screen flex flex-col bg-surface-900 text-slate-200 font-sans relative overflow-x-hidden">
-      {/* Subtle GPU-Accelerated Ambient Light Bloom Motion */}
+      {/* Ambient Light Bloom Motion */}
       <AmbientBackground />
 
       {/* Sticky Header with Brand Logo and Controls */}
@@ -363,7 +543,7 @@ export function App() {
         favoritesOnly={favoritesOnly}
         onToggleFavoritesOnly={() => setFavoritesOnly((prev) => !prev)}
         selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
+        onSelectCategory={navigateToCategory}
         currentSort={currentSort}
         onSelectSort={setCurrentSort}
         onShuffle={handleShuffle}
@@ -373,13 +553,13 @@ export function App() {
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
       />
 
-      {/* Hero Section with Search Bar, Category Chips, and Spotlight Pick */}
+      {/* Hero Section with Search Bar, Category Chips, Spotlight Pick, and Above-the-fold CTA */}
       <HeroSection
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onClearSearch={() => setSearchQuery('')}
         selectedCategory={selectedCategory}
-        onSelectCategory={setSelectedCategory}
+        onSelectCategory={navigateToCategory}
         featuredVideos={featuredVideos}
         isFavorite={isFavorite}
         onToggleFavorite={toggleFavorite}
@@ -397,9 +577,15 @@ export function App() {
           onNavigateStation={navigateToStation}
           onClear={clearRecentlyViewed}
         />
-        
-        {/* VIEW 1: Filtered / Search / Sorted Flat Grid Mode */}
-        {isFilteredGridView ? (
+
+        {/* Loading Skeleton State to eliminate blank flashes */}
+        {videosLoading && videos.length === 0 ? (
+          <div className="py-8">
+            <div className="h-6 w-48 bg-surface-800 rounded-md mb-6 animate-pulse" />
+            <VideoGridSkeleton count={8} />
+          </div>
+        ) : isFilteredGridView ? (
+          /* VIEW 1: Filtered / Search / Sorted Flat Grid Mode */
           <div>
             {/* Filter Header Context Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-surface-700">
@@ -547,7 +733,7 @@ export function App() {
                 videos={catVideos}
                 isFavorite={isFavorite}
                 onToggleFavorite={toggleFavorite}
-                onViewAllCategory={(cat) => setSelectedCategory(cat)}
+                onViewAllCategory={navigateToCategory}
                 onNavigatePermalink={navigateToStation}
                 getReactionCount={getReactionCount}
                 hasReacted={hasReacted}
@@ -562,7 +748,9 @@ export function App() {
       </main>
 
       {/* Monthly Newsletter Dispatch Section */}
-      <NewsletterSection />
+      <NewsletterSection
+        onNavigateThankYou={() => navigateToThankYou('newsletter')}
+      />
 
       {/* GitHub Open Source & Early Access Star CTA */}
       <StarCTA />
@@ -582,6 +770,22 @@ export function App() {
         onOpenAbout={() => setIsAboutOpen(true)}
         onOpenSuggest={() => setIsSuggestOpen(true)}
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        onNavigatePrivacy={navigateToPrivacy}
+        onNavigateTerms={navigateToTerms}
+        onSelectCategory={navigateToCategory}
+        onOpenCookieSettings={handleOpenCookieSettings}
+      />
+
+      {/* Persistent but Dismissible Sticky Mobile CTA */}
+      <StickyMobileCTA
+        onSurpriseMe={handleSurpriseMe}
+        onExplore={navigateToPublic}
+      />
+
+      {/* GDPR-Friendly Consent-Gated Cookie Banner */}
+      <CookieBanner
+        key={cookieBannerKey}
+        onOpenPrivacy={navigateToPrivacy}
       />
 
       {/* Floating Back to Top Button */}
@@ -593,11 +797,12 @@ export function App() {
         onClose={() => setIsAboutOpen(false)}
       />
 
-      {/* Suggest Station Modal */}
+      {/* Suggest Station Modal with Accessible Field Errors & Thank-You flow */}
       <SuggestStationModal
         isOpen={isSuggestOpen}
         onClose={() => setIsSuggestOpen(false)}
         onSubmitStation={submitStation}
+        onNavigateThankYou={(name) => navigateToThankYou('submission', name)}
       />
 
       {/* Keyboard Shortcuts Guide Modal */}

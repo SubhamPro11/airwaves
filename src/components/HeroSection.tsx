@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, X, ExternalLink, Heart } from 'lucide-react';
+import { Search, X, ExternalLink, Heart, Star } from 'lucide-react';
 import { Video, getEffectiveThumbnailUrl, DEFAULT_FALLBACK_THUMBNAIL } from '../types/video';
 
 import { CATEGORIES, Category } from '../data/playlist';
@@ -49,11 +49,24 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Left Column: Headline, Description & Primary Search Action */}
           <div className="lg:col-span-7 flex flex-col justify-center">
             
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent-500 animate-pulse" />
-              <span className="font-mono text-xs uppercase tracking-widest text-accent-400 font-semibold">
-                Curated Audio Index
-              </span>
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-accent-500 animate-pulse" />
+                <span className="font-mono text-xs uppercase tracking-widest text-accent-400 font-semibold">
+                  Curated Audio Index
+                </span>
+              </div>
+              <a
+                href="https://github.com/SubhamPro11/airwaves"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Star Airwaves on GitHub for early access"
+                className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-accent-500/10 hover:bg-accent-500/20 border border-accent-500/30 hover:border-accent-500/50 text-accent-400 text-xs font-mono font-medium transition-all group cursor-pointer shadow-xs"
+              >
+                <Star className="w-3.5 h-3.5 text-accent-400 group-hover:scale-110 transition-transform" />
+                <span>Star repo for early access</span>
+                <span className="text-slate-400 group-hover:text-white transition-colors">&rarr;</span>
+              </a>
             </div>
 
             <h1 className="font-sans font-black text-3xl sm:text-5xl text-white tracking-tight leading-[1.1] mb-4">

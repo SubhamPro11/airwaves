@@ -3,6 +3,7 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /admin/
+Disallow: /thank-you
 
 # Sitemap location
 Sitemap: https://airwaves.dpdns.org/sitemap.xml

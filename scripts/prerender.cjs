@@ -48,7 +48,7 @@ function generateSitemap() {
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
   
-  // Homepage
+  // 1. Homepage
   xml += `  <url>\n`;
   xml += `    <loc>${baseUrl}/</loc>\n`;
   xml += `    <lastmod>${today}</lastmod>\n`;
@@ -56,7 +56,18 @@ function generateSitemap() {
   xml += `    <priority>1.0</priority>\n`;
   xml += `  </url>\n`;
 
-  // All 70 Station Permalinks
+  // 2. All 7 Channel / Category Pages
+  CATEGORIES.forEach((cat) => {
+    const catSlug = cat.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    xml += `  <url>\n`;
+    xml += `    <loc>${baseUrl}/category/${catSlug}</loc>\n`;
+    xml += `    <lastmod>${today}</lastmod>\n`;
+    xml += `    <changefreq>weekly</changefreq>\n`;
+    xml += `    <priority>0.85</priority>\n`;
+    xml += `  </url>\n`;
+  });
+
+  // 3. All 70 Station Permalinks
   playlistData.videos.forEach((video) => {
     const slug = getStationSlug(video.title);
     const lastmod = video.dateAdded ? video.dateAdded.split('T')[0] : today;
@@ -64,7 +75,22 @@ function generateSitemap() {
     xml += `    <loc>${baseUrl}/station/${slug}</loc>\n`;
     xml += `    <lastmod>${lastmod}</lastmod>\n`;
     xml += `    <changefreq>weekly</changefreq>\n`;
-    xml += `    <priority>0.8</priority>\n`;
+    xml += `    <priority>0.75</priority>\n`;
+    xml += `  </url>\n`;
+  });
+
+  // 4. Legal & Info Pages
+  const staticPages = [
+    { path: '/privacy', priority: '0.4', changefreq: 'monthly' },
+    { path: '/terms', priority: '0.4', changefreq: 'monthly' },
+  ];
+
+  staticPages.forEach((page) => {
+    xml += `  <url>\n`;
+    xml += `    <loc>${baseUrl}${page.path}</loc>\n`;
+    xml += `    <lastmod>${today}</lastmod>\n`;
+    xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
+    xml += `    <priority>${page.priority}</priority>\n`;
     xml += `  </url>\n`;
   });
 
