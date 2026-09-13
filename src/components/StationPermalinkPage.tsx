@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { ArrowLeft, ExternalLink, Heart, Share2, Check, Radio, AlertCircle } from 'lucide-react';
-import { Video, getEffectiveThumbnailUrl } from '../types/video';
+import { Video, getEffectiveThumbnailUrl, getThumbnailSrcSet } from '../types/video';
 import { BrandLogo } from './BrandLogo';
 import { VideoCard } from './VideoCard';
 import { AmbientBackground } from './AmbientBackground';
@@ -219,7 +219,14 @@ export const StationPermalinkPage: React.FC<StationPermalinkPageProps> = ({
               {!imgError ? (
                 <img
                   src={thumbnailUrl}
+                  srcSet={getThumbnailSrcSet(thumbnailUrl)}
+                  sizes="(max-width: 768px) 100vw, 640px"
                   alt={`Cover artwork for ${video.title} on ${domain}`}
+                  width={640}
+                  height={360}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
                   onError={() => setImgError(true)}
                   className="w-full h-full object-cover object-center"
                 />

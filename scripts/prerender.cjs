@@ -145,7 +145,7 @@ function generatePrerenderedHTML() {
             <h3 style="color:#fff; font-size:1.125rem; font-weight:600; margin:0 0 0.5rem 0;">
               <a href="${video.externalLink}" target="_blank" rel="noopener noreferrer" style="color:#fff; text-decoration:none;">${video.title}</a>
             </h3>
-            <p style="color:#71717a; font-family:monospace; font-size:0.75rem; margin:0;">${domain} ↗</p>
+            <p style="color:#a1a1aa; font-family:monospace; font-size:0.75rem; margin:0;">${domain} ↗</p>
           </div>
         </article>`;
     }).join('\n');
@@ -187,9 +187,9 @@ function generatePrerenderedHTML() {
 
     <footer style="border-top:1px solid #26262a; background:#08080a; color:#a1a1aa; padding:3rem 1.5rem; margin-top:4rem;">
       <div style="max-width:80rem; margin:0 auto;">
-        <h4 style="color:#fff; font-size:1rem; margin:0 0 0.5rem 0;">AIRWAVES</h4>
+        <h3 style="color:#fff; font-size:1rem; font-weight:700; margin:0 0 0.5rem 0;">AIRWAVES</h3>
         <p style="font-size:0.875rem; max-width:32rem; line-height:1.5;">A single, human-curated playlist indexing 70 independent audio projects, web radios, highway travel soundscapes, and regional folk music from across India.</p>
-        <p style="font-family:monospace; font-size:0.75rem; color:#71717a; margin-top:1rem;">Airwaves · 70 independent audio websites · No algorithms · Zero ads</p>
+        <p style="font-family:monospace; font-size:0.75rem; color:#a1a1aa; margin-top:1rem;">Airwaves · 70 independent audio websites · No algorithms · Zero ads</p>
       </div>
     </footer>
   `.trim();

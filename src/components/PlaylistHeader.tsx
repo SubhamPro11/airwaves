@@ -235,7 +235,7 @@ export const PlaylistHeader: React.FC<PlaylistHeaderProps> = ({
                   key={cat}
                   type="button"
                   onClick={() => onSelectCategory(cat)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-xl text-xs whitespace-nowrap transition-all cursor-pointer border ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 min-h-[32px] rounded-xl text-xs whitespace-nowrap transition-all cursor-pointer border ${
                     isSelected
                       ? 'bg-accent-500/15 text-accent-400 border-accent-500/50 font-semibold shadow-xs'
                       : 'bg-surface-850 hover:bg-surface-800 text-slate-300 hover:text-white border-surface-700 hover:border-surface-600 font-medium'

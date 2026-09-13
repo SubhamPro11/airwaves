@@ -84,7 +84,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
                 contact@airwaves.dpdns.org
               </a>
             </div>
-            <p className="text-[11px] text-slate-500 font-mono">
+            <p className="text-[11px] text-slate-400 font-mono">
               Curated independently · Open source on GitHub (SubhamPro11/airwaves)
             </p>
           </div>
@@ -92,9 +92,9 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
 
         {/* Col 2: Real Index Metrics */}
         <div className="md:col-span-3">
-          <h4 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
             Collection index
-          </h4>
+          </h3>
           <ul className="space-y-2 text-xs text-slate-400">
             <li className="flex items-center justify-between">
               <span>Total curated links:</span>
@@ -152,9 +152,9 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
 
         {/* Col 3: Channels & Transparency */}
         <div className="md:col-span-4">
-          <h4 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-3">
             Browse by channel
-          </h4>
+          </h3>
           <div className="flex flex-wrap gap-1.5">
             {realCategories.map((cat) => (
               <button

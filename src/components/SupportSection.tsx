@@ -43,12 +43,15 @@ export const SupportSection: React.FC<SupportSectionProps> = ({
               <img
                 src={settings.supportQrUrl}
                 alt={`${settings.supportTitle || 'Curator Support'} QR Code`}
+                width={144}
+                height={144}
                 onError={() => setImgError(true)}
                 className="w-full h-full object-contain select-none"
                 loading="lazy"
+                decoding="async"
               />
             </div>
-            <span className="block text-[10px] text-center font-mono text-slate-500 mt-2">
+            <span className="block text-[10px] text-center font-mono text-slate-400 mt-2">
               Scan with any UPI / Pay app
             </span>
           </div>
@@ -60,9 +63,9 @@ export const SupportSection: React.FC<SupportSectionProps> = ({
               <span>Independent &amp; Ad-Free</span>
             </div>
 
-            <h3 className="font-sans font-bold text-lg sm:text-xl text-white tracking-tight">
+            <h2 className="font-sans font-bold text-lg sm:text-xl text-white tracking-tight">
               {settings.supportTitle || 'Support the Curator'}
-            </h3>
+            </h2>
 
             <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed max-w-xl">
               {settings.supportMessage}

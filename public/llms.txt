@@ -1,0 +1,33 @@
+# Airwaves
+
+> Airwaves is a curated directory of live web radios, ambient sound generators, and scenic livestream webcams designed for deep focus, coding, studying, and relaxation.
+
+## Canonical Information
+- Website: https://airwaves.dpdns.org
+- GitHub Repository: https://github.com/SubhamPro11/airwaves
+- Feed Format: Web Audio, HLS Livestreams, Direct MP3/AAC Streams, and Embedded Video Feeds
+- License: Open Source (MIT)
+
+## Core Features
+- Ad-Free & Privacy-Focused: Zero commercial interruptions, no behavioral ad trackers, optional cookieless analytics.
+- Multi-Channel Audio & Video: Handpicked streams grouped by vibe and genre.
+- Keyboard Navigation: Global hotkeys for playback, mute, shuffle, favorites, and volume.
+- Offline & PWA Ready: Installable Progressive Web App with local caching.
+- Deep Focus Tools: Ambient nature generators, live space cameras, lo-fi beats, and classical radio.
+
+## Channels & Collections
+- Ambient & Nature: https://airwaves.dpdns.org/channel/ambient
+- Lo-Fi & Beats: https://airwaves.dpdns.org/channel/lofi
+- Classical & Cinematic: https://airwaves.dpdns.org/channel/classical
+- Jazz & Lounge: https://airwaves.dpdns.org/channel/jazz
+- Electronic & Synthwave: https://airwaves.dpdns.org/channel/synth
+- Livestreams & Webcams: https://airwaves.dpdns.org/channel/live
+- Talk & Vintage Radio: https://airwaves.dpdns.org/channel/talk
+
+## Station Permalinks
+Individual stations can be directly accessed via persistent URLs:
+- Format: `https://airwaves.dpdns.org/station/{id}`
+
+## Documentation & Policies
+- Privacy Policy: https://airwaves.dpdns.org/privacy
+- Terms of Use: https://airwaves.dpdns.org/terms

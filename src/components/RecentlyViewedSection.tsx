@@ -1,6 +1,6 @@
 import React from 'react';
 import { History, X, ExternalLink } from 'lucide-react';
-import { Video, getEffectiveThumbnailUrl } from '../types/video';
+import { Video, getEffectiveThumbnailUrl, getOptimizedThumbnailUrl } from '../types/video';
 import { getStationSlug } from '../utils/slug';
 
 interface RecentlyViewedSectionProps {
@@ -16,36 +16,33 @@ export const RecentlyViewedSection: React.FC<RecentlyViewedSectionProps> = ({
   onNavigateStation,
   onClear,
 }) => {
-  if (!recentlyViewedIds || recentlyViewedIds.length === 0) {
-    return null;
-  }
+  // Only show if there are recently viewed stations
+  if (recentlyViewedIds.length === 0) return null;
 
-  // Map IDs to actual Video objects preserving order
+  // Map IDs to video objects in most-recent-first order
   const recentVideos = recentlyViewedIds
     .map((id) => videos.find((v) => v.id === id))
     .filter((v): v is Video => Boolean(v));
 
-  if (recentVideos.length === 0) {
-    return null;
-  }
+  if (recentVideos.length === 0) return null;
 
   return (
-    <section aria-label="Recently viewed stations" className="mb-8">
-      <div className="flex items-center justify-between gap-2 mb-3">
+    <section className="mb-8 p-4 sm:p-5 rounded-2xl bg-surface-850/60 border border-surface-700/60 backdrop-blur-sm">
+      <div className="flex items-center justify-between gap-4 mb-3">
         <div className="flex items-center gap-2">
-          <History className="w-4 h-4 text-accent-400" />
-          <h2 className="text-sm font-semibold text-white tracking-wide uppercase">
-            Recently Viewed
+          <History className="w-4 h-4 text-accent-500" />
+          <h2 className="text-xs sm:text-sm font-semibold text-white tracking-wide uppercase font-mono">
+            Recently Discovered
           </h2>
-          <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-surface-800 text-slate-300 border border-surface-700">
-            {recentVideos.length}
+          <span className="text-[11px] font-mono text-slate-500">
+            ({recentVideos.length})
           </span>
         </div>
 
         <button
           onClick={onClear}
-          aria-label="Clear recently viewed history"
-          className="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer hover:underline"
+          className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors py-1 px-2 rounded-lg hover:bg-surface-800 cursor-pointer"
+          title="Clear recent stations"
         >
           <X className="w-3.5 h-3.5" />
           <span>Clear history</span>
@@ -55,7 +52,7 @@ export const RecentlyViewedSection: React.FC<RecentlyViewedSectionProps> = ({
       {/* Horizontal scroll container for recent cards */}
       <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-surface-700 scrollbar-track-transparent">
         {recentVideos.map((video) => {
-          const thumb = getEffectiveThumbnailUrl(video);
+          const thumb = getOptimizedThumbnailUrl(getEffectiveThumbnailUrl(video), 120, 75, 'webp');
           const slug = getStationSlug(video.title);
 
           return (
@@ -67,7 +64,10 @@ export const RecentlyViewedSection: React.FC<RecentlyViewedSectionProps> = ({
                 <img
                   src={thumb}
                   alt={`Broadcast thumbnail for ${video.title} (${video.category})`}
+                  width={48}
+                  height={48}
                   loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>

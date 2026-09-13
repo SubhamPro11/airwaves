@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ArrowUpRight, Info, Share2, Check, AlertCircle } from 'lucide-react';
-import { Video, getEffectiveThumbnailUrl, DEFAULT_FALLBACK_THUMBNAIL, isRecentStation } from '../types/video';
+import { Video, getEffectiveThumbnailUrl, getThumbnailSrcSet, DEFAULT_FALLBACK_THUMBNAIL, isRecentStation } from '../types/video';
 import { getStationSlug } from '../utils/slug';
 import { useToast } from './Toast';
 
@@ -16,6 +16,7 @@ interface VideoCardProps {
   onRecordView?: (id: string) => void;
   onReportBroken?: (video: { id: string; externalLink: string }) => boolean;
   isBrokenReported?: boolean;
+  priority?: boolean;
 }
 
 export const VideoCard: React.FC<VideoCardProps> = ({
@@ -30,6 +31,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   onRecordView,
   onReportBroken,
   isBrokenReported = false,
+  priority = false,
 }) => {
   const [imageError, setImageError] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -146,11 +148,14 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         {!imageError ? (
           <img
             src={currentSrc}
+            srcSet={getThumbnailSrcSet(currentSrc)}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
             alt={`Broadcast artwork for ${video.title} (${video.category})`}
             width={640}
             height={360}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
             decoding="async"
+            {...(priority ? { fetchPriority: 'high' as const } : {})}
             onError={handleImageError}
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300 ease-out"
           />
@@ -160,7 +165,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
             <span className="font-mono text-xs text-slate-300 font-semibold truncate max-w-full">
               {domain}
             </span>
-            <span className="text-xs text-slate-500 mt-0.5">
+            <span className="text-xs text-slate-400 mt-0.5">
               {video.category}
             </span>
           </div>
@@ -242,7 +247,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                 type="button"
                 onClick={handleDetailsClick}
                 title="View station details & permalink"
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-900 hover:bg-surface-750 text-[10px] text-slate-400 hover:text-white border border-surface-700 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 px-2 py-1 min-h-[28px] rounded bg-surface-900 hover:bg-surface-750 text-[10px] text-slate-400 hover:text-white border border-surface-700 transition-colors cursor-pointer"
               >
                 <Info className="w-2.5 h-2.5" />
                 <span>Info</span>
@@ -253,7 +258,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
               onClick={handleCopyLink}
               title={copied ? "Copied to clipboard!" : "Copy station link"}
               aria-label={copied ? "Station link copied" : `Copy link for ${video.title}`}
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1 px-2 py-1 min-h-[28px] rounded text-[10px] border transition-all cursor-pointer ${
                 copied
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-medium'
                   : 'bg-surface-900 hover:bg-surface-750 text-slate-400 hover:text-white border-surface-700'
@@ -275,7 +280,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
                     : "Report dead or broken link"
                 }
                 aria-label={reported || isBrokenReported ? "Broken link reported" : `Report broken link for ${video.title}`}
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-all ${
+                className={`inline-flex items-center gap-1 px-2 py-1 min-h-[28px] rounded text-[10px] border transition-all ${
                   reported || isBrokenReported
                     ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 cursor-default'
                     : confirmingReport

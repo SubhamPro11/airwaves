@@ -48,7 +48,7 @@ export const CookieBanner: React.FC<CookieBannerProps> = ({ onOpenPrivacy }) => 
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-sans font-bold text-sm text-white flex items-center justify-between">
+            <h2 className="font-sans font-bold text-sm text-white flex items-center justify-between">
               <span>Privacy &amp; Minimal Analytics</span>
               <button
                 type="button"
@@ -58,7 +58,7 @@ export const CookieBanner: React.FC<CookieBannerProps> = ({ onOpenPrivacy }) => 
               >
                 <X className="w-4 h-4" />
               </button>
-            </h3>
+            </h2>
 
             <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
               Airwaves uses local storage for your favorites and dark/light theme. We request permission to load cookieless, privacy-friendly analytics to count aggregate listeners. Zero third-party ad trackers.

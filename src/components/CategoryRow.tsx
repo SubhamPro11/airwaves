@@ -17,6 +17,7 @@ interface CategoryRowProps {
   onRecordView?: (id: string) => void;
   onReportBroken?: (video: { id: string; externalLink: string }) => boolean;
   hasReportedBroken?: (id: string) => boolean;
+  isFirstRow?: boolean;
 }
 
 export const CategoryRow: React.FC<CategoryRowProps> = ({
@@ -32,11 +33,44 @@ export const CategoryRow: React.FC<CategoryRowProps> = ({
   onRecordView,
   onReportBroken,
   hasReportedBroken,
+  isFirstRow = false,
 }) => {
+  const sectionRef = useRef<HTMLElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [hasOverflow, setHasOverflow] = useState(false);
+
+  const categoryId = category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+  // Lazy-render below-the-fold rows to prevent main-thread long tasks
+  const [isVisible, setIsVisible] = useState(() => {
+    if (isFirstRow) return true;
+    if (typeof window !== 'undefined' && window.location.hash.includes(categoryId)) return true;
+    return false;
+  });
+
+  useEffect(() => {
+    if (isVisible) return;
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '400px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isVisible]);
 
   const checkScrollability = useCallback(() => {
     const el = rowRef.current;
@@ -49,14 +83,13 @@ export const CategoryRow: React.FC<CategoryRowProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!isVisible) return;
     checkScrollability();
     window.addEventListener('resize', checkScrollability);
     return () => window.removeEventListener('resize', checkScrollability);
-  }, [checkScrollability, videos.length]);
+  }, [isVisible, checkScrollability, videos.length]);
 
   if (videos.length === 0) return null;
-
-  const categoryId = category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
   const scroll = (direction: 'left' | 'right') => {
     if (rowRef.current) {
@@ -69,7 +102,7 @@ export const CategoryRow: React.FC<CategoryRowProps> = ({
   };
 
   return (
-    <section id={categoryId} className="scroll-mt-28">
+    <section ref={sectionRef} id={categoryId} className="scroll-mt-28 min-h-[260px]">
       {/* Category Header Row */}
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
@@ -125,32 +158,37 @@ export const CategoryRow: React.FC<CategoryRowProps> = ({
 
       {/* Horizontal Cards Carousel */}
       <div className="relative">
-        <div
-          ref={rowRef}
-          onScroll={checkScrollability}
-          className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 scrollbar-none snap-x -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
-        >
-          {videos.map((video) => (
-            <div
-              key={video.id}
-              className="w-[280px] sm:w-[320px] shrink-0 snap-start"
-            >
-              <VideoCard
-                video={video}
-                variant="row"
-                isFavorite={isFavorite(video.id)}
-                onToggleFavorite={onToggleFavorite}
-                onNavigatePermalink={onNavigatePermalink}
-                reactionCount={getReactionCount ? getReactionCount(video.id) : 0}
-                hasReacted={hasReacted ? hasReacted(video.id) : false}
-                onAddReaction={onAddReaction}
-                onRecordView={onRecordView}
-                onReportBroken={onReportBroken}
-                isBrokenReported={hasReportedBroken ? hasReportedBroken(video.id) : false}
-              />
-            </div>
-          ))}
-        </div>
+        {isVisible ? (
+          <div
+            ref={rowRef}
+            onScroll={checkScrollability}
+            className="flex gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 scrollbar-none snap-x -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          >
+            {videos.map((video, idx) => (
+              <div
+                key={video.id}
+                className="w-[280px] sm:w-[320px] shrink-0 snap-start"
+              >
+                <VideoCard
+                  video={video}
+                  variant="row"
+                  priority={isFirstRow && idx < 2}
+                  isFavorite={isFavorite(video.id)}
+                  onToggleFavorite={onToggleFavorite}
+                  onNavigatePermalink={onNavigatePermalink}
+                  reactionCount={getReactionCount ? getReactionCount(video.id) : 0}
+                  hasReacted={hasReacted ? hasReacted(video.id) : false}
+                  onAddReaction={onAddReaction}
+                  onRecordView={onRecordView}
+                  onReportBroken={onReportBroken}
+                  isBrokenReported={hasReportedBroken ? hasReportedBroken(video.id) : false}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="h-[200px] w-full rounded-2xl bg-surface-850/40 border border-surface-800/40 animate-pulse" />
+        )}
       </div>
     </section>
   );

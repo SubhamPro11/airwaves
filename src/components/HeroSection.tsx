@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, X, ExternalLink, Heart, Star } from 'lucide-react';
-import { Video, getEffectiveThumbnailUrl, DEFAULT_FALLBACK_THUMBNAIL } from '../types/video';
+import { Video, getEffectiveThumbnailUrl, getThumbnailSrcSet, DEFAULT_FALLBACK_THUMBNAIL } from '../types/video';
 
 import { CATEGORIES, Category } from '../data/playlist';
 
@@ -209,10 +209,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-black border border-surface-700 group">
                 <img
                   src={getEffectiveThumbnailUrl(currentSpotlight)}
+                  srcSet={getThumbnailSrcSet(getEffectiveThumbnailUrl(currentSpotlight))}
+                  sizes="(max-width: 768px) 100vw, 480px"
                   alt={`Featured spotlight broadcast: ${currentSpotlight.title} (${currentSpotlight.category})`}
                   width={640}
                   height={360}
                   loading="eager"
+                  fetchPriority="high"
                   decoding="async"
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = DEFAULT_FALLBACK_THUMBNAIL;
@@ -248,9 +251,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               {/* Spotlight Details & Action Button */}
               <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
                 <div>
-                  <h3 className="font-sans font-bold text-base sm:text-lg text-white leading-tight">
+                  <h2 className="font-sans font-bold text-base sm:text-lg text-white leading-tight">
                     {currentSpotlight.title}
-                  </h3>
+                  </h2>
                   <p className="font-mono text-xs text-slate-400 mt-1 truncate max-w-[220px]">
                     {domain}
                   </p>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { Heart, SearchX, RotateCcw, Plus } from 'lucide-react';
 import { CATEGORIES, Category } from './data/playlist';
 import { PlaylistHeader } from './components/PlaylistHeader';
@@ -12,13 +12,18 @@ import { useFavorites } from './hooks/useFavorites';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { useVideosData } from './hooks/useVideosData';
 import { useSubmissions } from './hooks/useSubmissions';
-import { AdminLogin } from './components/admin/AdminLogin';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { AboutModal } from './components/AboutModal';
-import { NotFoundPage } from './components/NotFoundPage';
-import { SuggestStationModal } from './components/SuggestStationModal';
-import { ShortcutsModal } from './components/ShortcutsModal';
-import { StationPermalinkPage } from './components/StationPermalinkPage';
+
+// Code-split secondary routes and admin panels to shrink public bundle by 80+ KiB
+const AdminLogin = lazy(() => import('./components/admin/AdminLogin').then(m => ({ default: m.AdminLogin })));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AboutModal = lazy(() => import('./components/AboutModal').then(m => ({ default: m.AboutModal })));
+const NotFoundPage = lazy(() => import('./components/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
+const SuggestStationModal = lazy(() => import('./components/SuggestStationModal').then(m => ({ default: m.SuggestStationModal })));
+const ShortcutsModal = lazy(() => import('./components/ShortcutsModal').then(m => ({ default: m.ShortcutsModal })));
+const StationPermalinkPage = lazy(() => import('./components/StationPermalinkPage').then(m => ({ default: m.StationPermalinkPage })));
+const PrivacyPolicyPage = lazy(() => import('./components/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
+const TermsPage = lazy(() => import('./components/TermsPage').then(m => ({ default: m.TermsPage })));
+const ThankYouPage = lazy(() => import('./components/ThankYouPage').then(m => ({ default: m.ThankYouPage })));
 import { SupportSection } from './components/SupportSection';
 import { StarCTA } from './components/StarCTA';
 import { NewsletterSection } from './components/NewsletterSection';
@@ -28,9 +33,6 @@ import { RecommendedSection } from './components/RecommendedSection';
 import { BackToTopButton } from './components/BackToTopButton';
 import { AmbientBackground } from './components/AmbientBackground';
 import { FaqSection } from './components/FaqSection';
-import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
-import { TermsPage } from './components/TermsPage';
-import { ThankYouPage } from './components/ThankYouPage';
 import { CookieBanner } from './components/CookieBanner';
 import { StickyMobileCTA } from './components/StickyMobileCTA';
 import { VideoGridSkeleton } from './components/VideoCardSkeleton';
@@ -420,7 +422,7 @@ export function App() {
     const station = findStationBySlugOrId(videos, routeState.stationSlug || '');
     if (station) {
       return (
-        <>
+        <Suspense fallback={<div className="min-h-screen bg-surface-950 flex items-center justify-center text-slate-400 font-mono text-sm">Loading station...</div>}>
           <StationPermalinkPage
             video={station}
             allVideos={videos}
@@ -439,42 +441,44 @@ export function App() {
             isBrokenReported={hasReportedBroken(station.id)}
           />
           <CookieBanner key={cookieBannerKey} onOpenPrivacy={navigateToPrivacy} />
-        </>
+        </Suspense>
       );
     }
     return (
-      <NotFoundPage
-        onBackToHome={navigateToPublic}
-        onSearchFrom404={handleSearchFrom404}
-        onSelectCategory={(cat) => navigateToCategory(cat as Category)}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-surface-950" />}>
+        <NotFoundPage
+          onBackToHome={navigateToPublic}
+          onSearchFrom404={handleSearchFrom404}
+          onSelectCategory={(cat) => navigateToCategory(cat as Category)}
+        />
+      </Suspense>
     );
   }
 
   // --- Privacy Policy Route View ---
   if (routeState.route === 'privacy') {
     return (
-      <>
+      <Suspense fallback={<div className="min-h-screen bg-surface-950" />}>
         <PrivacyPolicyPage onBackToHome={navigateToPublic} />
         <CookieBanner key={cookieBannerKey} onOpenPrivacy={navigateToPrivacy} />
-      </>
+      </Suspense>
     );
   }
 
   // --- Terms of Service Route View ---
   if (routeState.route === 'terms') {
     return (
-      <>
+      <Suspense fallback={<div className="min-h-screen bg-surface-950" />}>
         <TermsPage onBackToHome={navigateToPublic} />
         <CookieBanner key={cookieBannerKey} onOpenPrivacy={navigateToPrivacy} />
-      </>
+      </Suspense>
     );
   }
 
   // --- Thank-You Confirmation Route View ---
   if (routeState.route === 'thank_you') {
     return (
-      <>
+      <Suspense fallback={<div className="min-h-screen bg-surface-950" />}>
         <ThankYouPage
           onBackToHome={navigateToPublic}
           onSurpriseMe={handleSurpriseMe}
@@ -482,18 +486,20 @@ export function App() {
           stationName={routeState.stationName}
         />
         <CookieBanner key={cookieBannerKey} onOpenPrivacy={navigateToPrivacy} />
-      </>
+      </Suspense>
     );
   }
 
   // --- 404 Route View ---
   if (routeState.route === 'not_found') {
     return (
-      <NotFoundPage
-        onBackToHome={navigateToPublic}
-        onSearchFrom404={handleSearchFrom404}
-        onSelectCategory={(cat) => navigateToCategory(cat as Category)}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-surface-950" />}>
+        <NotFoundPage
+          onBackToHome={navigateToPublic}
+          onSearchFrom404={handleSearchFrom404}
+          onSelectCategory={(cat) => navigateToCategory(cat as Category)}
+        />
+      </Suspense>
     );
   }
 
@@ -501,31 +507,35 @@ export function App() {
   if (routeState.route === 'admin') {
     if (!isAuthenticated) {
       return (
-        <AdminLogin
-          onLogin={login}
-          error={authError}
-          loading={authLoading}
-          onBackToPublic={navigateToPublic}
-          isSupabaseConfigured={isSupabaseConfigured}
-        />
+        <Suspense fallback={<div className="min-h-screen bg-surface-950 flex items-center justify-center text-slate-400 font-mono text-sm">Loading admin portal...</div>}>
+          <AdminLogin
+            onLogin={login}
+            error={authError}
+            loading={authLoading}
+            onBackToPublic={navigateToPublic}
+            isSupabaseConfigured={isSupabaseConfigured}
+          />
+        </Suspense>
       );
     }
 
     return (
-      <AdminDashboard
-        videos={videos}
-        submissions={submissions}
-        isSupabaseConfigured={isSupabaseConfigured}
-        onUpdateVideo={updateVideo}
-        onDeleteVideo={deleteVideo}
-        onAddVideo={addVideo}
-        onReorderVideos={reorderVideos}
-        onApproveSubmission={handleApproveSubmission}
-        onRejectSubmission={(id) => updateSubmissionStatus(id, 'rejected')}
-        onDeleteSubmission={deleteSubmission}
-        onLogout={logout}
-        onViewPublicSite={navigateToPublic}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-surface-950 flex items-center justify-center text-slate-400 font-mono text-sm">Loading admin dashboard...</div>}>
+        <AdminDashboard
+          videos={videos}
+          submissions={submissions}
+          isSupabaseConfigured={isSupabaseConfigured}
+          onUpdateVideo={updateVideo}
+          onDeleteVideo={deleteVideo}
+          onAddVideo={addVideo}
+          onReorderVideos={reorderVideos}
+          onApproveSubmission={handleApproveSubmission}
+          onRejectSubmission={(id) => updateSubmissionStatus(id, 'rejected')}
+          onDeleteSubmission={deleteSubmission}
+          onLogout={logout}
+          onViewPublicSite={navigateToPublic}
+        />
+      </Suspense>
     );
   }
 
@@ -617,11 +627,12 @@ export function App() {
             {/* Grid of Results */}
             {processedVideos.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
-                {processedVideos.map((video) => (
+                {processedVideos.map((video, idx) => (
                   <VideoCard
                     key={video.id}
                     video={video}
                     variant="grid"
+                    priority={idx < 4}
                     isFavorite={isFavorite(video.id)}
                     onToggleFavorite={toggleFavorite}
                     onNavigatePermalink={navigateToStation}
@@ -726,11 +737,12 @@ export function App() {
               />
             )}
 
-            {categorizedVideos.map(({ category, videos: catVideos }) => (
+            {categorizedVideos.map(({ category, videos: catVideos }, idx) => (
               <CategoryRow
                 key={category}
                 category={category}
                 videos={catVideos}
+                isFirstRow={idx === 0}
                 isFavorite={isFavorite}
                 onToggleFavorite={toggleFavorite}
                 onViewAllCategory={navigateToCategory}
@@ -792,24 +804,36 @@ export function App() {
       <BackToTopButton />
 
       {/* Curation & About Modal */}
-      <AboutModal
-        isOpen={isAboutOpen}
-        onClose={() => setIsAboutOpen(false)}
-      />
+      {isAboutOpen && (
+        <Suspense fallback={null}>
+          <AboutModal
+            isOpen={isAboutOpen}
+            onClose={() => setIsAboutOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Suggest Station Modal with Accessible Field Errors & Thank-You flow */}
-      <SuggestStationModal
-        isOpen={isSuggestOpen}
-        onClose={() => setIsSuggestOpen(false)}
-        onSubmitStation={submitStation}
-        onNavigateThankYou={(name) => navigateToThankYou('submission', name)}
-      />
+      {isSuggestOpen && (
+        <Suspense fallback={null}>
+          <SuggestStationModal
+            isOpen={isSuggestOpen}
+            onClose={() => setIsSuggestOpen(false)}
+            onSubmitStation={submitStation}
+            onNavigateThankYou={(name) => navigateToThankYou('submission', name)}
+          />
+        </Suspense>
+      )}
 
       {/* Keyboard Shortcuts Guide Modal */}
-      <ShortcutsModal
-        isOpen={isShortcutsOpen}
-        onClose={() => setIsShortcutsOpen(false)}
-      />
+      {isShortcutsOpen && (
+        <Suspense fallback={null}>
+          <ShortcutsModal
+            isOpen={isShortcutsOpen}
+            onClose={() => setIsShortcutsOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
